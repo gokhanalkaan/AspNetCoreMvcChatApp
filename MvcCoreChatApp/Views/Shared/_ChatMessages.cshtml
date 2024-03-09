@@ -1,0 +1,109 @@
+﻿@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using MvcCoreChatApp.Entities
+@model MvcCoreChatApp.Entities.Chat 
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    var userId = Convert.ToInt32(HttpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+   
+ 
+}
+
+
+@if (Model.Message.Any())
+{
+    <div id="messages" style="display:flex;flex-direction:column; overflow-y:scroll;height:90%;width:72vw">
+
+
+
+
+        @foreach (var message in Model.Message)
+        {
+            @if (message.UserId == userId)
+            {
+                <div class="message-container message-container-right ">
+                    <div class="message-bubble message-bubble-right">@message.MessageText </div>
+                    <img class="profile-img" src="@(message.AppUser.ImageUrl ?? "https://as1.ftcdn.net/v2/jpg/03/46/83/96/1000_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg")" />
+
+
+                </div>
+
+
+            }
+            else
+            {
+                <div class="message-container message-container-left ">
+                    <div class="message-bubble message-bubble-left">@message.MessageText </div>
+                    <img class="profile-img" src="@(message.AppUser.ImageUrl ?? "https://as1.ftcdn.net/v2/jpg/03/46/83/96/1000_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg")" />
+
+
+                </div>
+                
+
+            }
+
+
+
+
+
+    }
+    </div>
+    <div style="display:flex;">
+        <input id="messageText" placeholder="Write Message" style="float:right;width:90%;height:50px;" />
+        <button style="width:70px;" onclick="sendMessageToChat(@Model.Id,@userId)">Send </button>
+
+
+    </div>
+
+
+
+
+
+}
+else{
+<h5>Start conversation</h5>
+
+    <div id="messages" style=" overflow-y:scroll;height:90%; width:70vw">
+    </div>
+
+    <div style="display:flex;">
+        <input id="messageText" placeholder="Write Message" style="float:right;width:90%;height:50px;" />
+        <button style="width:70px;" onclick="sendMessageToChat(@Model.Id,@userId)">Send </button>
+
+
+    </div>
+}
+
+
+
+
+
+<script>
+
+
+
+
+    
+
+    async function sendMessageToChat(chatId, userId) {
+        var message = document.getElementById("messageText").value;
+        try {
+            await connection.invoke("SendMessageToChat", chatId.toString(), userId, message);
+            console.log(`Message sent to chat ${chatId} by ${userId}: ${message}`);
+      
+        } catch (error) {
+            console.error(`Failed to send message to chat ${chatId} by ${userId}`, error);
+        }
+    }
+
+
+
+
+
+
+
+
+
+    
+
+</script>

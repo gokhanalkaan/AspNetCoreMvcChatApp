@@ -1,0 +1,245 @@
+﻿@using Newtonsoft.Json;
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+      var chatIds = JsonConvert.SerializeObject(Model.Select(c => c.ChatId));
+    var userId = Convert.ToInt32(HttpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+}
+
+@model List<MvcCoreChatApp.Models.ChatsViewModel>
+
+    <head>
+   
+    <link rel="stylesheet" href="~/css/index.css">
+    <title>Wehry Home Page</title>
+</head>
+
+<div class="d-flex">
+
+
+
+<div style="width:30%;flex:2;overflow:hidden;">
+    <h2>Chat List</h2>
+        <div  style="float:left;height:90vh;overflow-y:scroll;width:100%">
+      
+             @foreach (var conversation in Model)
+        {
+          
+                <div style="margin-left:0;" class="list-group-item d-flex justify-content-between align-items-start">
+                    <a href="#" style="color: inherit; text-decoration: none;" onclick="loadChatMessages(@conversation.ChatId)">
+                        <div style="display:flex;align-items:center;align-self:flex-start" class="ms-2 me-auto">
+                            <img class="profile-img" src="@(conversation.ImageUrl ?? "https://as1.ftcdn.net/v2/jpg/03/46/83/96/1000_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg")" />
+                            <div style="margin-top:5px">
+                             
+
+                           
+                            <p  class="fw-bold">@conversation.FriendName </p>
+
+                            <p style=" font-size:14px;font-weight:400;opacity:0.5;color:black; word-wrap: break-word;overflow:hidden" id="chat-@conversation.ChatId">
+                                @if (@conversation.LastMessage != null)
+                                {
+                                    if (@conversation.LastMessage.AppUser.Id == userId)
+                                    {
+                                        <text>me: @conversation.LastMessage.MessageText</text>
+                                           <span style="font-size:12px">@conversation.LastMessage?.MessageTime  </span>
+                                    }
+                                    else
+                                    {
+                                        <text>your friend: @conversation.LastMessage.MessageText</text>
+                                            <span style="font-size:12px">@conversation.LastMessage?.MessageTime  </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <text>No messages yet.</text>
+                                }
+                            </p>
+                            </div>
+                         
+
+                   
+                </div>
+                        <span class="badge text-bg-primary rounded-pill"> @conversation.LastMessage?.MessageTime</span>
+                    </a>
+            </div>
+              
+        }
+          
+        
+    </div>
+</div>
+
+ <div id="messagesContainer" style="padding:30px; height:90vh;width:70%;flex:3; ">
+     
+</div>
+
+</div>
+
+
+
+
+
+
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+
+
+
+
+
+
+
+<script>
+
+
+    
+
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chatHub")
+        .build();
+
+    connection.start().then(() => {
+   
+        console.log("Connection started successfully");
+
+        var chatIds = @Html.Raw(chatIds);
+        chatIds.forEach(async function (chatId) {
+            await joinChat(chatId);
+
+
+        });
+    })
+        .catch(error => {
+            console.error("Error starting connection:", error);
+        });
+
+
+    var loggedInUserId = @userId;
+    console.log(`Logged in user id: ${loggedInUserId}`);
+  
+
+    let lastChatId = null;
+
+  async function joinChat(chatId) {
+
+        try {
+            await connection.invoke("JoinChat", chatId.toString());
+            console.log(`Joined chat: ${chatId}`);
+        } catch (error) {
+            console.error(`Failed to join chat: ${chatId}`, error);
+        }
+    }
+
+
+
+
+    async function leaveChat(oldChatId) {
+        try {
+            await connection.invoke("LeaveChat", oldChatId.toString());
+            console.log(`Left chat: ${oldChatId}`);
+        } catch (error) {
+            console.error(`Failed to leave chat: ${oldChatId}`, error);
+        }
+    }
+
+    connection.on("ReceiveMessage", ( messageJson,chatId) => {
+
+        console.log(`receive message worked`);
+        if (lastChatId == chatId) {
+            let messageObject = JSON.parse(messageJson);
+            console.log(`${messageObject.AppUser.Id}: ${messageObject.MessageText}`);
+            console.log(`message type: ${typeof messageObject}`);
+
+            const messagesContainer = document.getElementById('messages');
+            const leftUpdateChat = document.getElementById('chat-'+chatId);
+
+            const newItem = document.createElement('p');
+            const newMessageContainer = document.createElement('div');
+            const newMessage = document.createElement('div');
+            const profileImage = document.createElement('img');
+
+            if (messageObject.AppUser.ProfileImage == null) {
+                profileImage.src = "https://as1.ftcdn.net/v2/jpg/03/46/83/96/1000_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg"
+            }
+            else {
+                profileImage.src = messageObject.AppUser.ProfileImage;
+
+            }
+
+            newMessage.classList.add('message-bubble');
+            newMessageContainer.classList.add('message-container');
+            profileImage.classList.add('profile-img');
+            if (loggedInUserId == messageObject.AppUser.Id) {
+                newMessageContainer.classList.add('message-container-right');
+                newMessage.classList.add('message-bubble-right');
+            }
+            else{
+                newMessageContainer.classList.add('message-container-left');
+                newMessage.classList.add('message-bubble-left');
+            }
+
+
+            newMessage.textContent = messageObject.MessageText  
+
+            newMessageContainer.appendChild(newMessage);
+            newMessageContainer.appendChild(profileImage);
+
+            messagesContainer.appendChild(newMessageContainer);
+            leftUpdateChat.textContent = messageObject.AppUser.Name + ":" + messageObject.MessageText+  "       " + messageObject.MessageTime;
+       
+
+        }
+        else {
+            console.log(`message from another chatId : ${chatId}`);
+        }
+        
+     
+    });
+
+
+
+
+   
+    async function loadChatMessages(chatId) {
+
+        $('#messagesContainer').empty();
+
+
+
+
+        console.log(`Loading messages for chatId: ${chatId}`);
+        try {
+
+       
+            lastChatId=chatId; 
+
+        
+           $.ajax({
+                url: '/Message/GetChatMessages',
+                type: 'GET',
+                data: { chatId: chatId },
+                success: function (result) {
+              
+                    $('#messagesContainer').html(result);
+                },
+                error: function (error) {
+                    console.error('Failed to load chat messages:', error);
+                }
+            });
+        } catch (error) {
+            console.error('Error loading chat messages:', error);
+        }
+    }
+
+
+
+
+
+
+</script>
+
+
+

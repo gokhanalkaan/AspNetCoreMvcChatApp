@@ -1,0 +1,11 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+@{
+    if (User?.Identity?.IsAuthenticated == false)
+    {
+        Layout = "~/Views/Shared/_LoginRegisterLayout.cshtml"; // Layout for authenticated users
+    }
+}
+ 

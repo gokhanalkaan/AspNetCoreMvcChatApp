@@ -1,0 +1,12 @@
+﻿
+.message-bubble {
+    background-color: blue;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 5px 0;
+    max-width: 70%;
+    word-wrap: break-word;
+    font-size:10px;
+  
+}
+

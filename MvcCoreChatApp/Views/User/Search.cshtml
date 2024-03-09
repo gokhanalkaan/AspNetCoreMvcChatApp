@@ -1,0 +1,27 @@
+﻿
+@{
+    ViewData["Title"] = "Search";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@model List<MvcCoreChatApp.Entities.AppUser>
+
+@if (Model.Any())
+{
+    <h2>Bulunan Kullanıcılar:</h2>
+    <ul>
+        @foreach (var user in Model)
+        {
+
+            <li>
+                <a href="/Chat/CreateChat?userId=@user.Id"> @user.UserName</a>
+               
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>Hiçbir kullanıcı bulunamadı.</p>
+}
+
+
